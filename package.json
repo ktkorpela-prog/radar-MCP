@@ -1,0 +1,32 @@
+{
+  "name": "@essentianlabs/radar-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that wraps @essentianlabs/radar-lite as a tool Claude can call before executing actions",
+  "type": "module",
+  "private": true,
+  "main": "src/index.js",
+  "bin": {
+    "radar-mcp": "bin/radar-mcp.js"
+  },
+  "scripts": {
+    "start": "node bin/radar-mcp.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "@essentianlabs/radar-lite": "^0.2.7"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "author": "EssentianLabs",
+  "keywords": [
+    "mcp",
+    "radar",
+    "risk-assessment",
+    "agent-safety"
+  ]
+}
