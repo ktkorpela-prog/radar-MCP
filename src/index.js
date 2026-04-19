@@ -77,7 +77,7 @@ export async function createServer() {
           content: [
             {
               type: 'text',
-              text: `RADAR assessment failed: ${err.message}`,
+              text: 'RADAR assessment failed. Check radar-lite configuration and logs.',
             },
           ],
           isError: true,

@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,8 +20,8 @@ if (process.argv.includes('install')) {
   console.log('Registering radar MCP server...');
   try {
     // Remove existing first (may not exist, that's fine)
-    try { execSync('claude mcp remove -s user radar', { stdio: 'ignore' }); } catch {}
-    execSync(`claude mcp add -s user radar node "${binPath}"`, { stdio: 'inherit' });
+    try { execFileSync('claude', ['mcp', 'remove', '-s', 'user', 'radar'], { stdio: 'ignore' }); } catch {}
+    execFileSync('claude', ['mcp', 'add', '-s', 'user', 'radar', 'node', binPath], { stdio: 'inherit' });
   } catch (err) {
     console.error('Failed to register MCP server. Is Claude Code CLI installed?');
     process.exit(1);
@@ -70,7 +70,7 @@ if (process.argv.includes('uninstall')) {
   // 1. Remove MCP server
   console.log('Removing radar MCP server...');
   try {
-    execSync('claude mcp remove -s user radar', { stdio: 'inherit' });
+    execFileSync('claude', ['mcp', 'remove', '-s', 'user', 'radar'], { stdio: 'inherit' });
   } catch (err) {
     // May not exist, that's fine
   }
