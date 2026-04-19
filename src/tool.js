@@ -29,9 +29,9 @@ export const TOOL_DESCRIPTION =
 /**
  * Execute the radar_assess tool by calling radar-lite's assess() function.
  */
-export async function executeRadarAssess({ action, activityType, agentId }, radar) {
+export async function executeRadarAssess({ action, activityType, agentId }, radar, defaultAgentId) {
   const opts = {};
-  if (agentId) opts.agentId = agentId;
+  opts.agentId = agentId || defaultAgentId || 'claude-code';
   const result = await radar.assess(action, activityType, opts);
 
   return {

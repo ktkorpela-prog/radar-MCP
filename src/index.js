@@ -43,6 +43,7 @@ export async function createServer() {
       if (t2Provider) opts.t2Provider = t2Provider;
       radar.configure(opts);
     }
+    return cfg;
   }
   applyConfig();
 
@@ -59,9 +60,10 @@ export async function createServer() {
     async (params) => {
       try {
         // Re-read config and database on every call so dashboard changes are picked up mid-session
-        applyConfig();
+        const cfg = applyConfig();
         if (radar.reload) await radar.reload();
-        const result = await executeRadarAssess(params, radar);
+        const defaultAgentId = cfg.RADAR_AGENT_ID || null;
+        const result = await executeRadarAssess(params, radar, defaultAgentId);
         return {
           content: [
             {

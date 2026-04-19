@@ -79,7 +79,10 @@ Or create `~/.radar/.env` manually:
 ```env
 LLM_PROVIDER=openai
 LLM_API_KEY=sk-your-openai-key
+RADAR_AGENT_ID=my-agent
 ```
+
+`RADAR_AGENT_ID` is optional — defaults to `claude-code`. Set it to identify this agent in the dashboard when running multiple agents.
 
 Supported providers: `openai` (recommended), `google`, `anthropic` (not recommended — see Segregation of Duties below).
 
