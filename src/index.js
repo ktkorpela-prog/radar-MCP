@@ -49,7 +49,7 @@ export async function createServer() {
 
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.2.0',
+    version: '0.2.1',
   });
 
   // Register the radar_assess tool
