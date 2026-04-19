@@ -1,6 +1,8 @@
 # Changelog — radar-mcp
 
-## 2026-04-19 — v0.2.0 — radar-lite v0.3.0 compatibility + Claude Desktop
+## 2026-04-19 — v0.2.0 — radar-lite v0.3.0 compatibility + Claude Desktop — published to npm
+
+**Published to npm: 2026-04-19** — https://www.npmjs.com/package/@essentianlabs/radar-mcp
 
 ### Updated
 - **tool.js** — Added `status` and `reviewRequired` fields to response mapping. radar-lite v0.3.0 returns `status` ('PROCEED' | 'HOLD' | 'DENY') as primary verdict and `reviewRequired` (true on HOLD). Both now passed through to Claude.
