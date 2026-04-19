@@ -6,15 +6,14 @@ import {
   radarAssessInputSchema,
   executeRadarAssess,
 } from './tool.js';
-import { loadRadarConfig, checkSegregation } from './config.js';
+import { loadRadarConfig, checkLlmKey, checkSegregation } from './config.js';
 
-const SETUP_INSTRUCTIONS = `Before taking any action that affects external systems, data, users, or files, call radar_assess with the intended action. If verdict is HOLD, do not proceed — explain the hold to the user and suggest alternatives. If verdict is PROCEED, you may continue.
-
-IMPORTANT: RADAR cannot enforce decisions in MCP integrations. Claude seeing HOLD is advisory. This system prompt instruction is what makes Claude respect HOLD verdicts. RADAR does not intercept or block actions by itself.`;
+const SETUP_INSTRUCTIONS = `Call radar_assess before every task. It must be your first tool call. If the verdict is PROCEED, continue. If HOLD or DENY, stop and explain the verdict to the user.`;
 
 export async function createServer() {
   // Load config and check segregation of duties
   const config = loadRadarConfig();
+  checkLlmKey(config);
   checkSegregation(config);
 
   // Import radar-lite dynamically (peer dependency)
@@ -31,9 +30,25 @@ export async function createServer() {
     process.exit(1);
   }
 
+  // Configure radar-lite on startup with initial config
+  function applyConfig() {
+    const cfg = loadRadarConfig();
+    const llmKey = cfg.LLM_API_KEY || cfg.RADAR_LLM_KEY || null;
+    const llmProvider = cfg.LLM_PROVIDER || cfg.RADAR_LLM_PROVIDER || 'openai';
+    const t2Key = cfg.T2_API_KEY || null;
+    const t2Provider = cfg.T2_PROVIDER || null;
+    if (llmKey && radar.configure) {
+      const opts = { llmKey, llmProvider };
+      if (t2Key) opts.t2Key = t2Key;
+      if (t2Provider) opts.t2Provider = t2Provider;
+      radar.configure(opts);
+    }
+  }
+  applyConfig();
+
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.1.0',
+    version: '0.2.0',
   });
 
   // Register the radar_assess tool
@@ -43,6 +58,9 @@ export async function createServer() {
     radarAssessInputSchema.shape,
     async (params) => {
       try {
+        // Re-read config and database on every call so dashboard changes are picked up mid-session
+        applyConfig();
+        if (radar.reload) await radar.reload();
         const result = await executeRadarAssess(params, radar);
         return {
           content: [

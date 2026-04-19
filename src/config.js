@@ -27,11 +27,25 @@ export function loadRadarConfig() {
 }
 
 /**
+ * Check if an LLM key is configured. Logs a warning if missing.
+ */
+export function checkLlmKey(config) {
+  const key = config.LLM_API_KEY || config.RADAR_LLM_KEY || config.T2_API_KEY || config.OPENAI_API_KEY || config.GOOGLE_API_KEY || config.ANTHROPIC_API_KEY;
+  if (!key) {
+    console.error(
+      'Warning: No LLM API key configured. RADAR will use rules-engine scoring only. ' +
+      'T2 assessments will return HOLD without Vela reasoning or strategy options. ' +
+      'Configure via the dashboard (npx @essentianlabs/radar-lite dashboard) or set LLM_API_KEY in ~/.radar/.env.'
+    );
+  }
+}
+
+/**
  * Check if the configured LLM provider is the same family as the calling agent (Anthropic/Claude).
  * Logs a warning if segregation of duties is violated.
  */
 export function checkSegregation(config) {
-  const provider = (config.RADAR_LLM_PROVIDER || 'openai').toLowerCase();
+  const provider = (config.LLM_PROVIDER || config.RADAR_LLM_PROVIDER || 'openai').toLowerCase();
   if (provider === 'anthropic') {
     console.error(
       'Warning: Vela Lite is using the same model family as the calling agent. ' +

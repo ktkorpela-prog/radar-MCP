@@ -17,7 +17,7 @@ export const ACTIVITY_TYPES = [
 
 export const radarAssessInputSchema = z.object({
   action: z.string().describe('What the agent intends to do'),
-  activityType: z.enum(ACTIVITY_TYPES).describe('Category of the intended action'),
+  activityType: z.string().describe('Category of the intended action. Standard types: ' + ACTIVITY_TYPES.join(', ') + '. Custom types from the dashboard are also accepted.'),
   agentId: z.string().optional().describe('Identifier for this agent'),
 });
 
@@ -30,11 +30,15 @@ export const TOOL_DESCRIPTION =
  * Execute the radar_assess tool by calling radar-lite's assess() function.
  */
 export async function executeRadarAssess({ action, activityType, agentId }, radar) {
-  const result = await radar.assess(action, activityType);
+  const opts = {};
+  if (agentId) opts.agentId = agentId;
+  const result = await radar.assess(action, activityType, opts);
 
   return {
+    status: result.status,
     verdict: result.verdict,
     proceed: result.proceed,
+    reviewRequired: result.reviewRequired || false,
     tier: result.tier,
     riskScore: result.riskScore,
     triggerReason: result.triggerReason,

@@ -4,117 +4,225 @@ Local MCP server that wraps [@essentianlabs/radar-lite](https://npmjs.com/packag
 
 ## What It Does
 
-Exposes one tool: **`radar_assess`** — assess an intended action for risk before executing it. Returns `PROCEED` or `HOLD` with Vela Lite's reasoning and strategy options.
+Exposes one tool: **`radar_assess`** — assess an intended action for risk before executing it. Returns `PROCEED`, `HOLD`, or `DENY` with Vela Lite's reasoning and strategy options.
 
-When Claude is about to take an action (send an email, delete data, call an API), it calls `radar_assess` first. If the verdict is `HOLD`, Claude should stop and explain the risk to the user.
+When Claude is about to take an action (send an email, delete data, call an API), it calls `radar_assess` first. If the verdict is `HOLD`, Claude stops and explains the risk. If the verdict is `DENY`, the action is blocked by policy.
+
+**Everything runs locally.** The MCP server calls radar-lite on your machine. radar-lite calls your own LLM provider key (OpenAI, Google, or Anthropic). No calls are made to EssentianLabs servers.
+
+```
+Claude → radar-mcp (local) → radar-lite (local) → your LLM key (OpenAI/Google)
+```
+
+## Prerequisites
+
+- **Node.js 18+** — [download](https://nodejs.org/)
+- **npm** — comes with Node.js
+- **An LLM API key** — OpenAI (recommended) or Google. Required for Vela Lite T2 assessments. Without a key, radar-lite falls back to rules-engine-only scoring (T1 works, T2 returns HOLD without reasoning).
+- **Claude Code** (VS Code extension) or **Claude Desktop** — whichever you use as your agent
 
 ## Install
 
+### Step 1: Clone this repo
+
 ```bash
-npm install @essentianlabs/radar-lite
-cd radar-mcp
+git clone https://github.com/ktkorpela-prog/radar-MCP.git
+cd radar-MCP
+```
+
+### Step 2: Install dependencies
+
+```bash
 npm install
 ```
 
-### Add to Claude Desktop
+This installs the MCP SDK and Zod. radar-lite is a peer dependency — npm will install it automatically if you're on npm 7+. If not, install it manually:
 
-In your `claude_desktop_config.json`:
+```bash
+npm install @essentianlabs/radar-lite
+```
+
+### Step 3: Register with Claude Code
+
+```bash
+node bin/radar-mcp.js install
+```
+
+This does two things:
+1. Registers the MCP server with Claude Code at user scope (available in all sessions)
+2. Adds a RADAR instruction to `~/.claude/CLAUDE.md` so Claude automatically calls `radar_assess` before taking external actions
+
+To verify:
+
+```bash
+claude mcp list
+```
+
+To uninstall (removes MCP server and CLAUDE.md instruction):
+
+```bash
+node bin/radar-mcp.js uninstall
+```
+
+### Step 4: Configure your LLM provider
+
+Launch the radar-lite dashboard:
+
+```bash
+npx @essentianlabs/radar-lite dashboard
+```
+
+Go to **Settings** and configure your LLM provider and API key. Recommended: OpenAI (see Segregation of Duties below).
+
+Or create `~/.radar/.env` manually:
+
+```env
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-your-openai-key
+```
+
+Supported providers: `openai` (recommended), `google`, `anthropic` (not recommended — see Segregation of Duties below).
+
+Without an LLM key, radar-lite still works but only uses the deterministic rules engine. T1 actions get scored and return PROCEED/HOLD. T2 actions return HOLD without Vela's reasoning or strategy options.
+
+#### Claude Desktop (alternative)
+
+If you use Claude Desktop instead of Claude Code, add to your `claude_desktop_config.json`:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%LOCALAPPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
-    "radar-lite": {
+    "radar": {
       "command": "node",
-      "args": ["/absolute/path/to/radar-mcp/bin/radar-mcp.js"]
+      "args": ["/absolute/path/to/radar-MCP/bin/radar-mcp.js"]
     }
   }
 }
 ```
 
-### Add via Claude CLI
+Restart Claude Desktop after saving.
 
-```bash
-claude mcp add radar-lite node /absolute/path/to/radar-mcp/bin/radar-mcp.js
-```
+### Step 5: Verify
 
-## Configuration
+**Restart any open Claude Code sessions** — MCP servers are loaded when a session starts. Existing sessions won't see the radar tool until restarted.
 
-RADAR reads config from `~/.radar/.env`:
+Then ask Claude to do something that would trigger an assessment — for example:
 
-```env
-RADAR_ENABLED=true
-RADAR_LLM_PROVIDER=openai
-RADAR_LLM_KEY=sk-your-openai-key
-```
+> "Send a bulk email to 5,000 subscribers announcing our new feature"
 
-### Segregation of Duties
+Claude should call `radar_assess` before acting. You'll see the tool call and the verdict in the conversation.
+
+**Note:** Dashboard changes (sliders, human review, trigger policies, LLM keys) take effect on the next `radar_assess` call within any running session — no restart needed for config changes. Only the initial install requires a session restart.
+
+## Segregation of Duties
 
 **The LLM provider for Vela Lite must NOT be the same model family as the calling agent.**
 
-Since Claude (Anthropic) is the calling agent, the default and recommended provider is `openai`:
+Since Claude (Anthropic) is the calling agent, the recommended provider is `openai` or `google`:
 
-- **T1 assessment:** gpt-4o-mini (fast, low-cost)
-- **T2 assessment:** gpt-4o (deeper reasoning)
+| Provider | T1 model (fast) | T2 model (reasoning) |
+|----------|-----------------|----------------------|
+| openai | gpt-4o-mini | gpt-4o |
+| google | gemini-2.0-flash | gemini-2.0-pro |
+| anthropic | claude-haiku-4-5 | claude-sonnet-4-6 |
 
-If `RADAR_LLM_PROVIDER` is set to `anthropic`, the server logs a warning:
-
-> Warning: Vela Lite is using the same model family as the calling agent. Segregation of duties recommends a different provider for T1/T2 assessment.
-
-This is a core design principle — the model being assessed should not be the model doing the assessing.
-
-## System Prompt Template
-
-Add this to your Claude system prompt or CLAUDE.md:
-
-```
-Before taking any action that affects external systems, data, users, or files,
-call radar_assess with the intended action. If verdict is HOLD, do not proceed —
-explain the hold to the user and suggest alternatives. If verdict is PROCEED,
-you may continue.
-```
-
-This template is also available as an MCP resource at `radar://setup_instructions`.
+If `RADAR_LLM_PROVIDER` is set to `anthropic`, the server logs a warning. This is a core design principle — the model being assessed should not be the model doing the assessing.
 
 ## Tool Schema
 
 ### `radar_assess`
 
 **Input:**
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `action` | string | Yes | What the agent intends to do |
-| `activityType` | string | Yes | One of: `email_single`, `email_bulk`, `publish`, `data_read`, `data_write`, `data_delete_single`, `data_delete_bulk`, `web_search`, `external_api_call`, `system_execute`, `system_files`, `financial` |
-| `agentId` | string | No | Identifier for this agent |
+| `action` | string | Yes | What the agent intends to do — be descriptive for accurate scoring |
+| `activityType` | enum | Yes | One of: `email_single`, `email_bulk`, `publish`, `data_read`, `data_write`, `data_delete_single`, `data_delete_bulk`, `web_search`, `external_api_call`, `system_execute`, `system_files`, `financial` |
+| `agentId` | string | No | Identifier for this agent (used for per-agent config and history) |
 
 **Output:**
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `verdict` | `"PROCEED"` \| `"HOLD"` | The assessment decision |
-| `proceed` | boolean | `true` = safe to proceed |
+| `status` | `"PROCEED"` \| `"HOLD"` \| `"DENY"` | Primary verdict |
+| `verdict` | string | Same as status (backwards compatibility) |
+| `proceed` | boolean | `true` if safe to proceed |
+| `reviewRequired` | boolean | `true` on HOLD — explicit human/system review needed |
 | `tier` | number | Assessment tier (1 or 2) |
 | `riskScore` | number | 1–25 risk score |
 | `triggerReason` | string | Why this score was assigned |
 | `vela` | string \| null | Vela Lite's formatted assessment |
-| `options` | object \| null | T2 strategy options (avoid, mitigate, transfer, accept) |
+| `options` | object \| null | T2 strategy options: `{ avoid, mitigate, transfer, accept }` |
 | `recommended` | string \| null | Recommended strategy |
-| `holdAction` | string | Action on HOLD (halt, queue, log_only, notify) |
-| `callId` | string | Unique assessment ID |
-| `policyDecision` | string | Policy outcome |
-| `wouldEscalate` | boolean | Whether this would escalate |
-| `escalateTier` | number \| null | Escalation tier (3 or 4) |
+| `holdAction` | string | Configured action on HOLD (halt, queue, log_only, notify) |
+| `callId` | string | Unique assessment ID for this call |
+| `policyDecision` | string | Policy outcome (assess, human_required, no_assessment, deny) |
+| `wouldEscalate` | boolean | Whether this would be T3/T4 on the full RADAR server |
+| `escalateTier` | number \| null | Escalation tier (3 or 4) if applicable |
+
+### Verdict behaviour
+
+- **PROCEED** (T1) — Score below review threshold. Agent may continue.
+- **HOLD** (T2) — Requires review. Comes with Vela's reasoning, four strategy options (avoid/mitigate/transfer/accept), and a recommended strategy.
+- **DENY** — Deterministic hard stop. Triggered by: policy set to `deny`, or score >= 20 with irreversibility signal. No LLM involved. Can only be overridden via `radar.strategy()` in code or the radar-lite dashboard — not by the agent.
+
+## Dashboard
+
+radar-lite includes a local dashboard where you can view assessment history, risk scores, Sankey flow charts, agent stats, and configure activity sliders and policies.
+
+To launch it:
+
+```bash
+npx @essentianlabs/radar-lite dashboard
+```
+
+This starts the dashboard at `http://localhost:4040`. All assessments made through the MCP server are automatically recorded in radar-lite's local SQLite database and visible here.
+
+If you get a "not found" error, install radar-lite globally first:
+
+```bash
+npm install -g @essentianlabs/radar-lite
+```
+
+Then run:
+
+```bash
+radar-lite dashboard
+```
+
+## Dependencies
+
+| Package | Version | What it does |
+|---------|---------|--------------|
+| `@modelcontextprotocol/sdk` | ^1.28.0 | MCP server framework (stdio transport) |
+| `zod` | ^3.25.0 | Input schema validation |
+| `@essentianlabs/radar-lite` | ^0.3.0 | Risk assessment engine (peer dependency) |
 
 ## Advisory Notice
 
-**RADAR cannot enforce decisions in MCP integrations.** Claude seeing `HOLD` is advisory. For enforcement, your system prompt must instruct Claude to respect `HOLD` verdicts. RADAR does not intercept or block actions by itself.
+**RADAR cannot enforce decisions in MCP integrations.** Claude seeing `HOLD` or `DENY` is advisory. The system prompt instruction is what makes Claude respect verdicts. RADAR does not intercept or block actions by itself.
 
-The MCP tool provides risk assessment data — it is the system prompt and agent design that determine whether the assessment is acted upon.
+The MCP tool provides risk assessment data — it is the system prompt and agent design that determine whether the assessment is acted upon. A `PROCEED` verdict does not transfer liability. See the [radar-lite README](https://npmjs.com/package/@essentianlabs/radar-lite) for full advisory terms.
 
 ## Privacy
 
 - Runs 100% locally — no calls to EssentianLabs servers
 - LLM calls go directly from your machine to your configured provider (your key, your cost)
-- No API keys are hardcoded
-- Assessment history is stored locally in SQLite via radar-lite
+- No API keys are hardcoded — all config from `~/.radar/.env`
+- Assessment history stored locally in SQLite via radar-lite (action hashes only, never action text)
+- No telemetry, no analytics, no phoning home
+
+## CLI
+
+```bash
+node bin/radar-mcp.js install   # Register MCP server + add CLAUDE.md instruction
+node bin/radar-mcp.js uninstall # Remove MCP server + remove CLAUDE.md instruction
+node bin/radar-mcp.js --version # Print version
+node bin/radar-mcp.js           # Start MCP server (stdio — called by Claude, not by you)
+```
 
 ## License
 

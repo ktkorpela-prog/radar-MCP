@@ -1,6 +1,6 @@
 {
   "name": "@essentianlabs/radar-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server that wraps @essentianlabs/radar-lite as a tool Claude can call before executing actions",
   "type": "module",
   "private": true,
@@ -16,7 +16,7 @@
     "zod": "^3.25.0"
   },
   "peerDependencies": {
-    "@essentianlabs/radar-lite": "^0.2.7"
+    "@essentianlabs/radar-lite": "file:../RADAR/radar-lite"
   },
   "engines": {
     "node": ">=18"
