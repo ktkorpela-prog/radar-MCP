@@ -27,29 +27,16 @@ Claude → radar-mcp (local) → radar-lite (local) → your LLM key (OpenAI/Goo
 
 ## Install
 
-### Step 1: Clone this repo
+### Step 1: Install packages
 
 ```bash
-git clone https://github.com/ktkorpela-prog/radar-MCP.git
-cd radar-MCP
+npm install @essentianlabs/radar-lite @essentianlabs/radar-mcp
 ```
 
-### Step 2: Install dependencies
+### Step 2: Register with Claude Code
 
 ```bash
-npm install
-```
-
-This installs the MCP SDK and Zod. radar-lite is a peer dependency — npm will install it automatically if you're on npm 7+. If not, install it manually:
-
-```bash
-npm install @essentianlabs/radar-lite
-```
-
-### Step 3: Register with Claude Code
-
-```bash
-node bin/radar-mcp.js install
+npx radar-mcp install
 ```
 
 This does two things:
@@ -65,7 +52,7 @@ claude mcp list
 To uninstall (removes MCP server and CLAUDE.md instruction):
 
 ```bash
-node bin/radar-mcp.js uninstall
+npx radar-mcp uninstall
 ```
 
 ### Step 4: Configure your LLM provider
@@ -226,10 +213,10 @@ See the [radar-lite README](https://npmjs.com/package/@essentianlabs/radar-lite)
 ## CLI
 
 ```bash
-node bin/radar-mcp.js install   # Register MCP server + add CLAUDE.md instruction
-node bin/radar-mcp.js uninstall # Remove MCP server + remove CLAUDE.md instruction
-node bin/radar-mcp.js --version # Print version
-node bin/radar-mcp.js           # Start MCP server (stdio — called by Claude, not by you)
+npx radar-mcp install             # Register MCP server + add CLAUDE.md instruction
+npx radar-mcp install --dashboard # Same + open the dashboard
+npx radar-mcp uninstall           # Remove MCP server + remove CLAUDE.md instruction
+npx radar-mcp --version           # Print version
 ```
 
 ## License

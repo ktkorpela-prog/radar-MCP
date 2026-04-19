@@ -1,14 +1,15 @@
 {
   "name": "@essentianlabs/radar-mcp",
   "version": "0.2.2",
-  "description": "MCP server that wraps @essentianlabs/radar-lite as a tool Claude can call before executing actions",
+  "description": "MCP server wrapping @essentianlabs/radar-lite for agent risk assessment. BETA — not recommended for enterprise or production use without independent legal review.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
     "radar-mcp": "bin/radar-mcp.js"
   },
   "scripts": {
-    "start": "node bin/radar-mcp.js"
+    "start": "node bin/radar-mcp.js",
+    "test": "node --test test/basic.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",

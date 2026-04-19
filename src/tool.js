@@ -24,7 +24,7 @@ export const radarAssessInputSchema = z.object({
 export const TOOL_NAME = 'radar_assess';
 
 export const TOOL_DESCRIPTION =
-  "Assess an intended action for risk before executing it. Returns PROCEED or HOLD with Vela Lite's reasoning and strategy options.";
+  "Assess an intended action for risk before executing it. Returns PROCEED, HOLD, or DENY with Vela Lite's reasoning and strategy options.";
 
 /**
  * Execute the radar_assess tool by calling radar-lite's assess() function.
