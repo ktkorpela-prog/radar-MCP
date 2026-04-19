@@ -1,5 +1,9 @@
 # @essentianlabs/radar-mcp
 
+Early beta for evaluation only.
+
+RADAR MCP is in active evaluation. If you try it, assume it's experimental and tell me where it breaks — technically or conceptually.
+
 Local MCP server that wraps [@essentianlabs/radar-lite](https://npmjs.com/package/@essentianlabs/radar-lite) as a tool Claude can call before executing actions. Runs entirely on your machine — same privacy model as radar-lite.
 
 ## What It Does
@@ -204,19 +208,28 @@ radar-lite dashboard
 | `zod` | ^3.25.0 | Input schema validation |
 | `@essentianlabs/radar-lite` | ^0.3.0 | Risk assessment engine (peer dependency) |
 
-## Advisory Notice
+## Advisory notice
 
-**RADAR cannot enforce decisions in MCP integrations.** Claude seeing `HOLD` or `DENY` is advisory. The system prompt instruction is what makes Claude respect verdicts. RADAR does not intercept or block actions by itself.
+RADAR produces risk intelligence, not safety assurance. It structures reasoning — it does not validate decisions.
 
-The MCP tool provides risk assessment data — it is the system prompt and agent design that determine whether the assessment is acted upon. A `PROCEED` verdict does not transfer liability. See the [radar-lite README](https://npmjs.com/package/@essentianlabs/radar-lite) for full advisory terms.
+- RADAR assesses the **action description** supplied by the developer or agent. It does not verify, monitor, or control the real-world action that is actually executed.
+- A **PROCEED** verdict means "not held by this assessment." It is not authorization, approval, certification, legal advice, or safety validation.
+- RADAR can produce a PROCEED verdict for actions that later prove harmful, incorrect, unethical, or non-compliant. The assessment reflects what was described, not what occurs.
+- **Liability remains with the developer, operator, and end user.** RADAR does not transfer, reduce, or share liability for actions taken.
+- If an external LLM provider is configured, action text leaves the local machine and is sent to that provider under your own account and API terms.
+- **RADAR cannot enforce decisions in MCP integrations.** Claude seeing `HOLD` or `DENY` is advisory. The system prompt instruction is what makes Claude respect verdicts. RADAR does not intercept or block actions by itself.
 
-## Privacy
+This is a beta release. Not recommended for enterprise or production use without independent legal and compliance review. By installing this package you agree to the [Beta Terms of Use](https://radar.essentianlabs.com/terms.html).
 
-- Runs 100% locally — no calls to EssentianLabs servers
-- LLM calls go directly from your machine to your configured provider (your key, your cost)
-- No API keys are hardcoded — all config from `~/.radar/.env`
-- Assessment history stored locally in SQLite via radar-lite (action hashes only, never action text)
-- No telemetry, no analytics, no phoning home
+See the [radar-lite README](https://npmjs.com/package/@essentianlabs/radar-lite) for full advisory terms.
+
+## Privacy and Data Flow
+
+- **No calls to EssentianLabs servers** — everything runs locally
+- **LLM calls go to your configured provider** (OpenAI, Google, or Anthropic) using your API key, at your cost. Action descriptions are sent to the provider for assessment. Review your provider's data retention policies.
+- **Without an LLM key** — no external calls are made. The rules engine runs entirely locally.
+- **Assessment history** — stored locally in SQLite at `~/.radar/register.db`. Action hashes only — never action text.
+- **No telemetry, no analytics, no phoning home**
 
 ## CLI
 
@@ -229,4 +242,6 @@ node bin/radar-mcp.js           # Start MCP server (stdio — called by Claude, 
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+Copyright 2026 EssentianLabs.

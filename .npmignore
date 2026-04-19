@@ -1,0 +1,8 @@
+.radar/
+*.log
+.env
+.DS_Store
+.git/
+PROMPT-RADAR-MCP.md
+CHANGELOG-RADAR-MCP.md
+VPS-MONITORING.md
