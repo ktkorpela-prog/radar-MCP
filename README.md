@@ -126,17 +126,9 @@ Claude should call `radar_assess` before acting. You'll see the tool call and th
 
 ## Segregation of Duties
 
-**The LLM provider for Vela Lite must NOT be the same model family as the calling agent.**
+Since Claude is the calling agent, we recommend using a different LLM provider for RADAR assessments — `openai` or `google`. T1 uses a fast model for quick scoring. T2 uses a reasoning model for deeper review. Model selection is handled automatically based on your configured provider.
 
-Since Claude (Anthropic) is the calling agent, the recommended provider is `openai` or `google`:
-
-| Provider | T1 model (fast) | T2 model (reasoning) |
-|----------|-----------------|----------------------|
-| openai | gpt-4o-mini | gpt-4o |
-| google | gemini-2.0-flash | gemini-2.0-pro |
-| anthropic | claude-haiku-4-5 | claude-sonnet-4-6 |
-
-If `RADAR_LLM_PROVIDER` is set to `anthropic`, the server logs a warning. This is a core design principle — the model being assessed should not be the model doing the assessing.
+If `RADAR_LLM_PROVIDER` is set to `anthropic`, the server logs a warning.
 
 ## Tool Schema
 
@@ -172,9 +164,9 @@ If `RADAR_LLM_PROVIDER` is set to `anthropic`, the server logs a warning. This i
 
 ### Verdict behaviour
 
-- **PROCEED** (T1) — Score below review threshold. Agent may continue.
-- **HOLD** (T2) — Requires review. Comes with Vela's reasoning, four strategy options (avoid/mitigate/transfer/accept), and a recommended strategy.
-- **DENY** — Deterministic hard stop. Triggered by: policy set to `deny`, or score >= 20 with irreversibility signal. No LLM involved. Can only be overridden via `radar.strategy()` in code or the radar-lite dashboard — not by the agent.
+- **PROCEED** — Below review threshold. Agent may continue.
+- **HOLD** — Requires review. Comes with Vela's reasoning, four strategy options (avoid/mitigate/transfer/accept), and a recommended strategy.
+- **DENY** — Hard stop. Blocked by policy or extreme risk. Can only be overridden via the radar-lite dashboard — not by the agent.
 
 ## Dashboard
 

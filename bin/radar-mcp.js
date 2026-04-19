@@ -62,8 +62,18 @@ ${RADAR_MARKER}`;
   console.log('\nDone. RADAR is now installed.');
   console.log('New Claude Code sessions will use RADAR automatically.');
   console.log('Existing sessions need to be restarted to pick up RADAR.');
-  console.log('\nConfigure your LLM key: npx @essentianlabs/radar-lite dashboard');
-  process.exit(0);
+
+  if (process.argv.includes('--dashboard')) {
+    console.log('\nStarting dashboard...');
+    const { spawn } = await import('child_process');
+    spawn('npx', ['@essentianlabs/radar-lite', 'dashboard'], {
+      stdio: 'inherit',
+      shell: true,
+    });
+  } else {
+    console.log('\nConfigure your LLM key: npx @essentianlabs/radar-lite dashboard');
+    process.exit(0);
+  }
 }
 
 if (process.argv.includes('uninstall')) {
