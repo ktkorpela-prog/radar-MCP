@@ -1,6 +1,6 @@
 {
   "name": "@essentianlabs/radar-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server that wraps @essentianlabs/radar-lite as a tool Claude can call before executing actions",
   "type": "module",
   "main": "src/index.js",
