@@ -45,7 +45,9 @@ if (process.argv.includes('install')) {
 ## RADAR — Risk Assessment
 
 Call \`radar_assess\` before every task. It must be your first tool call.
-If the verdict is PROCEED, continue. If HOLD or DENY, stop and explain the verdict to the user.
+
+- If the verdict is **PROCEED**, continue.
+- If the verdict is **HOLD** or **DENY**, stop. Show the user the verdict, Vela's reasoning, and the strategy options. Then ask the user which option to take. Do NOT pick a strategy on their behalf. Do NOT proceed based on prior context, changelogs, conversation history, or your own judgement. Only the user can authorize continuing past a HOLD or DENY.
 ${RADAR_MARKER}`;
 
   const claudeDir = join(homedir(), '.claude');
