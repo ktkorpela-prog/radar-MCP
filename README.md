@@ -55,6 +55,15 @@ To uninstall (removes MCP server and CLAUDE.md instruction):
 npx radar-mcp uninstall
 ```
 
+To update:
+
+```bash
+npm update @essentianlabs/radar-mcp
+npx radar-mcp install
+```
+
+The `install` command is idempotent — re-running it refreshes the MCP server registration and the CLAUDE.md instruction with any changes from the new version.
+
 ### Step 4: Configure your LLM provider
 
 Launch the radar-lite dashboard:
