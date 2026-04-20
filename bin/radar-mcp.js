@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { execFileSync } from 'child_process';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,16 +19,47 @@ if (process.argv.includes('--version') || process.argv.includes('-v')) {
 if (process.argv.includes('install')) {
   const binPath = join(__dirname, 'radar-mcp.js').replace(/\\/g, '/');
 
-  // 0. Check radar-lite is installed
+  // 0. Check radar-lite is installed and version-compatible
+  const ownPkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+  const requiredRange = ownPkg.peerDependencies?.['@essentianlabs/radar-lite'] || '^0.3.0';
+  const requiredMajor = requiredRange.match(/(\d+)\.(\d+)/);
+
+  let installedVersion;
   try {
-    await import('@essentianlabs/radar-lite');
+    const radarPkgPath = require.resolve('@essentianlabs/radar-lite/package.json', { paths: [process.cwd(), __dirname] });
+    installedVersion = JSON.parse(readFileSync(radarPkgPath, 'utf-8')).version;
   } catch {
-    console.error(
-      'Error: @essentianlabs/radar-lite is not installed.\n' +
-      'Install it first:\n\n' +
-      '  npm install @essentianlabs/radar-lite\n'
-    );
-    process.exit(1);
+    try {
+      // Fallback: try dynamic import
+      await import('@essentianlabs/radar-lite');
+      installedVersion = 'unknown';
+    } catch {
+      console.error(
+        'Error: @essentianlabs/radar-lite is not installed.\n\n' +
+        '  npm install @essentianlabs/radar-lite@latest\n'
+      );
+      process.exit(1);
+    }
+  }
+
+  // Simple major.minor check — peer dep is ^0.3.0, so installed must be 0.3.x
+  if (installedVersion !== 'unknown' && requiredMajor) {
+    const [, reqMaj, reqMin] = requiredMajor;
+    const installedMatch = installedVersion.match(/(\d+)\.(\d+)/);
+    if (installedMatch) {
+      const [, insMaj, insMin] = installedMatch;
+      const compatible = insMaj === reqMaj && (reqMaj !== '0' ? true : insMin === reqMin);
+      if (!compatible) {
+        console.error(
+          `Error: @essentianlabs/radar-lite version mismatch.\n` +
+          `  Installed: ${installedVersion}\n` +
+          `  Required:  ${requiredRange}\n\n` +
+          `Update radar-lite:\n\n` +
+          `  npm install @essentianlabs/radar-lite@latest\n`
+        );
+        process.exit(1);
+      }
+    }
   }
 
   // 1. Register MCP server at user scope

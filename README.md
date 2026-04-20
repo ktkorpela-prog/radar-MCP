@@ -30,8 +30,10 @@ Claude → radar-mcp (local) → radar-lite (local) → your LLM key (OpenAI/Goo
 ### Step 1: Install packages
 
 ```bash
-npm install @essentianlabs/radar-lite @essentianlabs/radar-mcp
+npm install @essentianlabs/radar-lite@latest @essentianlabs/radar-mcp@latest
 ```
+
+Using `@latest` ensures version compatibility between the two packages. If you get an `ERESOLVE` peer dependency error, update radar-lite first: `npm install @essentianlabs/radar-lite@latest`.
 
 ### Step 2: Register with Claude Code
 
