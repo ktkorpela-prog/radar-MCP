@@ -16,6 +16,18 @@ if (process.argv.includes('--version') || process.argv.includes('-v')) {
 if (process.argv.includes('install')) {
   const binPath = join(__dirname, 'radar-mcp.js').replace(/\\/g, '/');
 
+  // 0. Check radar-lite is installed
+  try {
+    await import('@essentianlabs/radar-lite');
+  } catch {
+    console.error(
+      'Error: @essentianlabs/radar-lite is not installed.\n' +
+      'Install it first:\n\n' +
+      '  npm install @essentianlabs/radar-lite\n'
+    );
+    process.exit(1);
+  }
+
   // 1. Register MCP server at user scope
   console.log('Registering radar MCP server...');
   try {
