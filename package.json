@@ -1,6 +1,6 @@
 {
   "name": "@essentianlabs/radar-mcp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "MCP server wrapping @essentianlabs/radar-lite for agent risk assessment. BETA — not recommended for enterprise or production use without independent legal review.",
   "type": "module",
   "main": "src/index.js",
@@ -23,10 +23,6 @@
   },
   "license": "MIT",
   "author": "EssentianLabs",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ktkorpela-prog/radar-MCP.git"
-  },
   "keywords": [
     "mcp",
     "radar",

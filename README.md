@@ -99,6 +99,28 @@ If you use Claude Desktop instead of Claude Code, add to your `claude_desktop_co
 
 Restart Claude Desktop after saving.
 
+#### Cursor
+
+Add to your Cursor MCP settings (`.cursor/mcp.json` in your project, or global settings):
+
+```json
+{
+  "mcpServers": {
+    "radar": {
+      "command": "npx",
+      "args": ["radar-mcp"]
+    }
+  }
+}
+```
+
+Add this to your `.cursorrules` file so Cursor calls RADAR automatically:
+
+```
+Call radar_assess before every task. It must be your first tool call.
+If the verdict is PROCEED, continue. If HOLD or DENY, stop and explain the verdict to the user.
+```
+
 ### Step 5: Verify
 
 **Restart any open Claude Code sessions** — MCP servers are loaded when a session starts. Existing sessions won't see the radar tool until restarted.
