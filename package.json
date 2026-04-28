@@ -1,6 +1,6 @@
 {
   "name": "@essentianlabs/radar-mcp",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "MCP server wrapping @essentianlabs/radar-lite for agent risk assessment. BETA — not recommended for enterprise or production use without independent legal review.",
   "type": "module",
   "main": "src/index.js",

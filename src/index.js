@@ -1,5 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 import {
   TOOL_NAME,
   TOOL_DESCRIPTION,
@@ -7,6 +10,24 @@ import {
   executeRadarAssess,
 } from './tool.js';
 import { loadRadarConfig, checkLlmKey, checkSegregation } from './config.js';
+import { RADAR_INSTRUCTION, extractCurrentBlock } from './instruction.js';
+
+function checkClaudeMdSync() {
+  const claudeMdPath = join(homedir(), '.claude', 'CLAUDE.md');
+  if (!existsSync(claudeMdPath)) return;
+  try {
+    const content = readFileSync(claudeMdPath, 'utf-8');
+    const currentBlock = extractCurrentBlock(content);
+    if (currentBlock && currentBlock.trim() !== RADAR_INSTRUCTION.trim()) {
+      console.error(
+        '[radar-mcp] CLAUDE.md instruction is out of date with the installed package. ' +
+        'Run `npx radar-mcp install` to refresh it.'
+      );
+    }
+  } catch {
+    // Ignore — best-effort check
+  }
+}
 
 const SETUP_INSTRUCTIONS = `You MUST call radar_assess before every task. It MUST be your first tool call. No exceptions.
 
@@ -19,6 +40,7 @@ export async function createServer() {
   const config = loadRadarConfig();
   checkLlmKey(config);
   checkSegregation(config);
+  checkClaudeMdSync();
 
   // Import radar-lite dynamically (peer dependency)
   let radar;
@@ -53,7 +75,7 @@ export async function createServer() {
 
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.2.9',
+    version: '0.2.10',
   });
 
   // Register the radar_assess tool
