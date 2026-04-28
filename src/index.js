@@ -1,8 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 import {
   TOOL_NAME,
   TOOL_DESCRIPTION,
@@ -29,6 +32,74 @@ function checkClaudeMdSync() {
   }
 }
 
+const UPDATE_CHECK_CACHE = join(homedir(), '.radar', '.mcp-update-check');
+const UPDATE_CHECK_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+  }
+  return 0;
+}
+
+async function checkRadarLiteVersion() {
+  // Read installed radar-lite version
+  let installed;
+  try {
+    const radarPkgPath = require.resolve('@essentianlabs/radar-lite/package.json');
+    installed = JSON.parse(readFileSync(radarPkgPath, 'utf-8')).version;
+  } catch {
+    return; // radar-lite not installed — separate check handles that
+  }
+
+  // Read cache
+  let cache = null;
+  if (existsSync(UPDATE_CHECK_CACHE)) {
+    try {
+      cache = JSON.parse(readFileSync(UPDATE_CHECK_CACHE, 'utf-8'));
+    } catch {
+      cache = null;
+    }
+  }
+
+  const now = Date.now();
+  let latest = cache?.latest;
+
+  // Fetch from npm registry if cache is stale
+  if (!cache || (now - cache.checkedAt) > UPDATE_CHECK_TTL_MS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch('https://registry.npmjs.org/@essentianlabs%2fradar-lite/latest', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        latest = data.version;
+        try {
+          mkdirSync(join(homedir(), '.radar'), { recursive: true });
+          writeFileSync(UPDATE_CHECK_CACHE, JSON.stringify({ checkedAt: now, latest }), 'utf-8');
+        } catch {
+          // Ignore write failure
+        }
+      }
+    } catch {
+      return; // Network failure — silent
+    }
+  }
+
+  if (latest && compareVersions(latest, installed) > 0) {
+    console.error(
+      `[radar-mcp] @essentianlabs/radar-lite v${latest} is available (installed: v${installed}). ` +
+      `Run \`npm install @essentianlabs/radar-lite@latest\` to update.`
+    );
+  }
+}
+
 const SETUP_INSTRUCTIONS = `You MUST call radar_assess before every task. It MUST be your first tool call. No exceptions.
 
 - If the verdict is PROCEED, you may continue.
@@ -41,6 +112,8 @@ export async function createServer() {
   checkLlmKey(config);
   checkSegregation(config);
   checkClaudeMdSync();
+  // Fire and forget — don't block startup
+  checkRadarLiteVersion().catch(() => {});
 
   // Import radar-lite dynamically (peer dependency)
   let radar;
@@ -75,7 +148,7 @@ export async function createServer() {
 
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.2.10',
+    version: '0.2.11',
   });
 
   // Register the radar_assess tool
