@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { execFileSync } from 'child_process';
 import { createRequire } from 'module';
+import { safeReadFile, safeWriteFile } from '../src/safe-fs.js';
 
 const require = createRequire(import.meta.url);
 
@@ -81,22 +82,33 @@ if (process.argv.includes('install')) {
 
   mkdirSync(claudeDir, { recursive: true });
 
+  // safeReadFile refuses symlinks and caps file size
   let existing = '';
   if (existsSync(claudeMdPath)) {
-    existing = readFileSync(claudeMdPath, 'utf-8');
+    const content = safeReadFile(claudeMdPath);
+    if (content === null) {
+      console.error('Failed to read ~/.claude/CLAUDE.md (symlink or oversized).');
+      process.exit(1);
+    }
+    existing = content;
   }
 
+  let written;
   if (existing.includes(RADAR_MARKER)) {
     // Replace existing RADAR block
     const regex = new RegExp(`${RADAR_MARKER}[\\s\\S]*?${RADAR_MARKER}`, 'm');
     const updated = existing.replace(regex, RADAR_INSTRUCTION);
-    writeFileSync(claudeMdPath, updated, 'utf-8');
-    console.log('Updated RADAR instructions in ~/.claude/CLAUDE.md');
+    written = safeWriteFile(claudeMdPath, updated);
+    if (written) console.log('Updated RADAR instructions in ~/.claude/CLAUDE.md');
   } else {
     // Append
     const separator = existing.length > 0 ? '\n\n' : '';
-    writeFileSync(claudeMdPath, existing + separator + RADAR_INSTRUCTION + '\n', 'utf-8');
-    console.log('Added RADAR instructions to ~/.claude/CLAUDE.md');
+    written = safeWriteFile(claudeMdPath, existing + separator + RADAR_INSTRUCTION + '\n');
+    if (written) console.log('Added RADAR instructions to ~/.claude/CLAUDE.md');
+  }
+  if (!written) {
+    console.error('Failed to write ~/.claude/CLAUDE.md.');
+    process.exit(1);
   }
 
   console.log('\nDone. RADAR is now installed.');
@@ -129,12 +141,11 @@ if (process.argv.includes('uninstall')) {
   const { RADAR_MARKER } = await import('../src/instruction.js');
   const claudeMdPath = join(homedir(), '.claude', 'CLAUDE.md');
 
-  if (existsSync(claudeMdPath)) {
-    let content = readFileSync(claudeMdPath, 'utf-8');
-    if (content.includes(RADAR_MARKER)) {
-      const regex = new RegExp(`\\n?\\n?${RADAR_MARKER}[\\s\\S]*?${RADAR_MARKER}\\n?`, 'm');
-      content = content.replace(regex, '').trim();
-      writeFileSync(claudeMdPath, content + (content ? '\n' : ''), 'utf-8');
+  const content = safeReadFile(claudeMdPath);
+  if (content !== null && content.includes(RADAR_MARKER)) {
+    const regex = new RegExp(`\\n?\\n?${RADAR_MARKER}[\\s\\S]*?${RADAR_MARKER}\\n?`, 'm');
+    const updated = content.replace(regex, '').trim();
+    if (safeWriteFile(claudeMdPath, updated + (updated ? '\n' : ''))) {
       console.log('Removed RADAR instructions from ~/.claude/CLAUDE.md');
     }
   }

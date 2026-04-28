@@ -1,7 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { writeFileSync, mkdirSync, rmSync, symlinkSync, existsSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { TOOL_NAME, TOOL_DESCRIPTION, radarAssessInputSchema, ACTIVITY_TYPES, executeRadarAssess } from '../src/tool.js';
 import { loadRadarConfig, checkLlmKey, checkSegregation } from '../src/config.js';
+import { safeReadFile, safeWriteFile } from '../src/safe-fs.js';
 
 describe('tool.js', () => {
   it('exports correct tool name', () => {
@@ -266,6 +270,63 @@ describe('tool.js', () => {
     );
 
     assert.strictEqual(passedOpts.agentId, 'claude-code');
+  });
+});
+
+describe('safe-fs.js', () => {
+  const testDir = join(tmpdir(), `radar-mcp-test-${Date.now()}`);
+  mkdirSync(testDir, { recursive: true });
+
+  it('safeReadFile returns null for non-existent file', () => {
+    assert.strictEqual(safeReadFile(join(testDir, 'nope.txt')), null);
+  });
+
+  it('safeReadFile reads a normal file', () => {
+    const path = join(testDir, 'normal.txt');
+    writeFileSync(path, 'hello world', 'utf-8');
+    assert.strictEqual(safeReadFile(path), 'hello world');
+  });
+
+  it('safeReadFile refuses oversized files', () => {
+    const path = join(testDir, 'big.txt');
+    const big = 'x'.repeat(2 * 1024 * 1024); // 2 MiB > 1 MiB cap
+    writeFileSync(path, big, 'utf-8');
+    assert.strictEqual(safeReadFile(path), null);
+  });
+
+  it('safeReadFile refuses to follow symlinks', () => {
+    const target = join(testDir, 'target.txt');
+    const link = join(testDir, 'link.txt');
+    writeFileSync(target, 'sensitive', 'utf-8');
+    if (existsSync(link)) rmSync(link);
+    try {
+      symlinkSync(target, link);
+      assert.strictEqual(safeReadFile(link), null);
+    } catch (err) {
+      // Skip on systems where symlinks require admin (Windows without dev mode)
+      if (err.code !== 'EPERM') throw err;
+    }
+  });
+
+  it('safeWriteFile writes to a new file', () => {
+    const path = join(testDir, 'new.txt');
+    assert.strictEqual(safeWriteFile(path, 'data'), true);
+    assert.strictEqual(safeReadFile(path), 'data');
+  });
+
+  it('safeWriteFile refuses to write through a symlink', () => {
+    const target = join(testDir, 'target2.txt');
+    const link = join(testDir, 'link2.txt');
+    writeFileSync(target, 'original', 'utf-8');
+    if (existsSync(link)) rmSync(link);
+    try {
+      symlinkSync(target, link);
+      assert.strictEqual(safeWriteFile(link, 'overwritten'), false);
+      // Target unchanged
+      assert.strictEqual(safeReadFile(target), 'original');
+    } catch (err) {
+      if (err.code !== 'EPERM') throw err;
+    }
   });
 });
 

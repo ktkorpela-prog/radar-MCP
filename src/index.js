@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { createRequire } from 'module';
@@ -14,21 +14,18 @@ import {
 } from './tool.js';
 import { loadRadarConfig, checkLlmKey, checkSegregation } from './config.js';
 import { RADAR_INSTRUCTION, extractCurrentBlock } from './instruction.js';
+import { safeReadFile, safeWriteFile } from './safe-fs.js';
 
 function checkClaudeMdSync() {
   const claudeMdPath = join(homedir(), '.claude', 'CLAUDE.md');
-  if (!existsSync(claudeMdPath)) return;
-  try {
-    const content = readFileSync(claudeMdPath, 'utf-8');
-    const currentBlock = extractCurrentBlock(content);
-    if (currentBlock && currentBlock.trim() !== RADAR_INSTRUCTION.trim()) {
-      console.error(
-        '[radar-mcp] CLAUDE.md instruction is out of date with the installed package. ' +
-        'Run `npx radar-mcp install` to refresh it.'
-      );
-    }
-  } catch {
-    // Ignore — best-effort check
+  const content = safeReadFile(claudeMdPath);
+  if (content === null) return;
+  const currentBlock = extractCurrentBlock(content);
+  if (currentBlock && currentBlock.trim() !== RADAR_INSTRUCTION.trim()) {
+    console.error(
+      '[radar-mcp] CLAUDE.md instruction is out of date with the installed package. ' +
+      'Run `npx radar-mcp install` to refresh it.'
+    );
   }
 }
 
@@ -55,11 +52,12 @@ async function checkRadarLiteVersion() {
     return; // radar-lite not installed — separate check handles that
   }
 
-  // Read cache
+  // Read cache (safe: refuses symlinks + caps size)
   let cache = null;
-  if (existsSync(UPDATE_CHECK_CACHE)) {
+  const cacheRaw = safeReadFile(UPDATE_CHECK_CACHE);
+  if (cacheRaw !== null) {
     try {
-      cache = JSON.parse(readFileSync(UPDATE_CHECK_CACHE, 'utf-8'));
+      cache = JSON.parse(cacheRaw);
     } catch {
       cache = null;
     }
@@ -82,7 +80,7 @@ async function checkRadarLiteVersion() {
         latest = data.version;
         try {
           mkdirSync(join(homedir(), '.radar'), { recursive: true });
-          writeFileSync(UPDATE_CHECK_CACHE, JSON.stringify({ checkedAt: now, latest }), 'utf-8');
+          safeWriteFile(UPDATE_CHECK_CACHE, JSON.stringify({ checkedAt: now, latest }));
         } catch {
           // Ignore write failure
         }
@@ -148,7 +146,7 @@ export async function createServer() {
 
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.3.0',
+    version: '0.3.1',
   });
 
   // Register the radar_assess tool
