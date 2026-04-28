@@ -11,7 +11,8 @@ import { loadRadarConfig, checkLlmKey, checkSegregation } from './config.js';
 const SETUP_INSTRUCTIONS = `You MUST call radar_assess before every task. It MUST be your first tool call. No exceptions.
 
 - If the verdict is PROCEED, you may continue.
-- If the verdict is HOLD or DENY, you MUST stop. Show the user the verdict, Vela's reasoning, and the strategy options. Ask the user which option to take. You MUST NOT pick a strategy on their behalf or proceed based on prior context.`;
+- If the verdict is HOLD or DENY, you MUST stop. Show the user the verdict, Vela's reasoning, and the strategy options. Ask the user which option to take. You MUST NOT pick a strategy on their behalf or proceed based on prior context.
+- If radarEnabled is false, you MUST tell the user RADAR is disabled and this action was not assessed. Ask whether they want to enable RADAR or proceed without assessment.`;
 
 export async function createServer() {
   // Load config and check segregation of duties
@@ -52,7 +53,7 @@ export async function createServer() {
 
   const server = new McpServer({
     name: 'radar-lite',
-    version: '0.2.8',
+    version: '0.2.9',
   });
 
   // Register the radar_assess tool

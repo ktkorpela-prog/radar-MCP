@@ -34,6 +34,8 @@ export async function executeRadarAssess({ action, activityType, agentId }, rada
   opts.agentId = agentId || defaultAgentId || 'claude-code';
   const result = await radar.assess(action, activityType, opts);
 
+  const radarEnabled = result.radarEnabled !== false;
+
   return {
     status: result.status,
     verdict: result.verdict,
@@ -50,5 +52,7 @@ export async function executeRadarAssess({ action, activityType, agentId }, rada
     policyDecision: result.policyDecision,
     wouldEscalate: result.wouldEscalate || false,
     escalateTier: result.escalateTier || null,
+    radarEnabled,
+    warning: radarEnabled ? undefined : 'RADAR is currently disabled. This action was not assessed. Inform the user before proceeding.',
   };
 }

@@ -201,6 +201,55 @@ describe('tool.js', () => {
     assert.strictEqual(passedOpts.agentId, 'explicit-agent');
   });
 
+  it('executeRadarAssess includes warning when radar is disabled', async () => {
+    const mockRadar = {
+      assess: async () => ({
+        status: 'PROCEED',
+        verdict: 'PROCEED',
+        proceed: true,
+        radarEnabled: false,
+        tier: 0,
+        riskScore: 0,
+        triggerReason: 'RADAR disabled',
+        callId: 'ra_disabled',
+      }),
+    };
+
+    const result = await executeRadarAssess(
+      { action: 'test', activityType: 'data_read' },
+      mockRadar,
+      null
+    );
+
+    assert.strictEqual(result.radarEnabled, false);
+    assert.ok(result.warning);
+    assert.ok(result.warning.includes('disabled'));
+  });
+
+  it('executeRadarAssess has no warning when radar is enabled', async () => {
+    const mockRadar = {
+      assess: async () => ({
+        status: 'PROCEED',
+        verdict: 'PROCEED',
+        proceed: true,
+        radarEnabled: true,
+        tier: 1,
+        riskScore: 1,
+        triggerReason: 'test',
+        callId: 'ra_enabled',
+      }),
+    };
+
+    const result = await executeRadarAssess(
+      { action: 'test', activityType: 'data_read' },
+      mockRadar,
+      null
+    );
+
+    assert.strictEqual(result.radarEnabled, true);
+    assert.strictEqual(result.warning, undefined);
+  });
+
   it('executeRadarAssess falls back to claude-code when no agentId at all', async () => {
     let passedOpts;
     const mockRadar = {
