@@ -254,6 +254,8 @@ npx radar-mcp --version           # Print version
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT licensed and free to use. See [LICENSE](LICENSE).
+
+The RADAR client packages — `radar-lite`, `radar-mcp`, `openclaw-radar` — are MIT licensed. The hosted Vela Essentian™ service and supporting infrastructure are proprietary and operated by EssentianLabs.
 
 Copyright 2026 EssentianLabs.
