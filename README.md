@@ -252,6 +252,12 @@ npx radar-mcp uninstall           # Remove MCP server + remove CLAUDE.md instruc
 npx radar-mcp --version           # Print version
 ```
 
+## Ecosystem
+
+**Pixel Agents** — when `radar-mcp` is installed in Claude Code, [Pixel Agents](https://github.com/pablodelucca/pixel-agents) ([PR #258](https://github.com/pablodelucca/pixel-agents/pull/258), [preview build](https://github.com/ktkorpela-prog/pixel-agents/releases)) renders `radar_assess` calls as a pixel art animation: the agent character walks to a Risk Assessment desk where Vela (the first NPC) stamps the verdict.
+
+Without Pixel Agents the tool works exactly the same — the visual layer is purely additive and dormant unless `radar_desk` furniture is placed in the office layout.
+
 ## License
 
 MIT licensed and free to use. See [LICENSE](LICENSE).
